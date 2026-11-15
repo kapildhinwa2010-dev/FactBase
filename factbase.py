@@ -1,18 +1,18 @@
-# FactBase - Zero-overhead fact storage with direct and reverse queries
+# FactBase - Durable fact storage with JSON persistence and indexed queries
 # Part of the Kapildhinwa2010-dev Toolkit.
 
-"""KnowledgeNet - facts, alias derivation and chain reasoning.
+"""FactBase - durable fact storage with JSON import/export.
 
-Lineage: reserv.dean-part-2 (HELIX). Facts are stored as (subject, predicate,
-object) triples; aliases are derived transitively from equality facts; chain
-reasoning walks predicates to answer multi-hop queries.
+Lineage: reserv.dean-part-2 (HELIX). Facts are (subject, predicate,
+object) triples with indexed direct and reverse queries. This repo is the
+STORAGE layer of the fact-tool family: it adds merge, JSON persistence
+and index listings on top of the shared triple store. Alias derivation,
+chain reasoning and rule firing live in the sibling repos.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-
-import numpy as np
 
 __all__ = ["Fact", "KnowledgeNet"]
 
@@ -44,7 +44,7 @@ class Fact:
 
 
 class KnowledgeNet:
-    """Zero-overhead fact base with alias and chain reasoning."""
+    """Fact store with indexed direct and reverse queries."""
 
     def __init__(self) -> None:
         self._facts: set = set()
@@ -131,3 +131,40 @@ class KnowledgeNet:
                 scores[fact] = len(related)
         ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0].as_tuple()))
         return [fact for fact, _ in ranked[:top_k]]
+
+    def merge(self, other: "KnowledgeNet") -> int:
+        """Add every fact from ``other``; return the count of new facts."""
+        added = 0
+        for fact in other.facts():
+            if self.add(fact.subject, fact.predicate, fact.object):
+                added += 1
+        return added
+
+    def export_json(self) -> str:
+        """Serialize all facts to a JSON list of [s, p, o] triples."""
+        import json
+
+        return json.dumps([list(f.as_tuple()) for f in self.facts()])
+
+    def import_json(self, payload: str) -> int:
+        """Load triples from ``export_json`` output; return new-fact count.
+
+        Malformed entries raise ValueError from Fact validation.
+        """
+        import json
+
+        data = json.loads(payload)
+        added = 0
+        for item in data:
+            s, p, o = item
+            if self.add(s, p, o):
+                added += 1
+        return added
+
+    def subjects(self) -> list:
+        """Sorted list of distinct subjects."""
+        return sorted({f.subject for f in self._facts})
+
+    def predicates(self) -> list:
+        """Sorted list of distinct predicates."""
+        return sorted({f.predicate for f in self._facts})

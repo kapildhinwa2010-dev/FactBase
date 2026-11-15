@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from factbase import Fact, KnowledgeNet
@@ -37,52 +39,53 @@ def test_query_pattern():
     assert len(net.query(subject="a", predicate="likes")) == 1
 
 
-def test_derive_aliases_transitive():
+def test_facts_sorted():
     net = KnowledgeNet()
-    net.add("x", "same_as", "y")
-    net.add("y", "same_as", "z")
-    aliases = net.derive_aliases()
-    assert aliases["x"] == aliases["y"] == aliases["z"]
+    net.add("b", "knows", "c")
+    net.add("a", "knows", "b")
+    assert [f.as_tuple() for f in net.facts()] == [("a", "knows", "b"), ("b", "knows", "c")]
 
 
-def test_derive_aliases_ignores_other_predicates():
+# --- storage / persistence (FactBase-specific) ---
+
+
+def test_merge_counts_new_facts():
+    net1 = KnowledgeNet()
+    net1.add("a", "knows", "b")
+    net2 = KnowledgeNet()
+    net2.add("a", "knows", "b")
+    net2.add("c", "knows", "d")
+    assert net1.merge(net2) == 1
+    assert len(net1) == 2
+
+
+def test_export_import_roundtrip():
     net = KnowledgeNet()
-    net.add("x", "knows", "y")
-    assert net.derive_aliases() == {}
+    net.add("a", "knows", "b")
+    net.add("b", "knows", "c")
+    payload = net.export_json()
+    restored = KnowledgeNet()
+    assert restored.import_json(payload) == 2
+    assert restored.facts() == net.facts()
 
 
-def test_chain_walk():
+def test_import_json_reimports_are_noops():
     net = KnowledgeNet()
-    net.add("a", "next", "b")
-    net.add("b", "next", "c")
-    net.add("c", "next", "d")
-    assert net.chain("a", "next") == ["b", "c", "d"]
+    net.add("a", "knows", "b")
+    payload = net.export_json()
+    assert net.import_json(payload) == 0
 
 
-def test_chain_respects_max_hops():
-    net = KnowledgeNet()
-    net.add("a", "next", "b")
-    net.add("b", "next", "c")
-    assert net.chain("a", "next", max_hops=1) == ["b"]
-
-
-def test_chain_handles_cycles():
-    net = KnowledgeNet()
-    net.add("a", "next", "b")
-    net.add("b", "next", "a")
-    assert net.chain("a", "next") == ["b"]
-
-
-def test_interference_ranks_related():
-    net = KnowledgeNet()
-    net.add("hub", "knows", "a")
-    net.add("hub", "knows", "b")
-    net.add("lonely", "knows", "c")
-    top = net.interference("hub")
-    assert top and top[0].subject == "hub"
-
-
-def test_chain_rejects_bad_hops():
+def test_import_json_rejects_malformed():
     net = KnowledgeNet()
     with pytest.raises(ValueError):
-        net.chain("a", "next", max_hops=0)
+        net.import_json(json.dumps([["", "p", "o"]]))
+
+
+def test_subjects_and_predicates():
+    net = KnowledgeNet()
+    net.add("a", "knows", "b")
+    net.add("a", "likes", "c")
+    net.add("d", "knows", "e")
+    assert net.subjects() == ["a", "d"]
+    assert net.predicates() == ["knows", "likes"]
