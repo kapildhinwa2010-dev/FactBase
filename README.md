@@ -1,7 +1,8 @@
 # FactBase
 
 [![CI](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/ci.yml)
-[![CI](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml)
+
 
 Durable fact storage: (subject, predicate, object) triples with JSON persistence and indexed queries.
 
