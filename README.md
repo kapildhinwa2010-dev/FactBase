@@ -1,43 +1,52 @@
 # FactBase
 
-Facts, alias derivation and chain reasoning.
+[![CI](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/ci.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/ci.yml)
+[![CI](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml/badge.svg)](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml)
+
+Durable fact storage: (subject, predicate, object) triples with JSON persistence and indexed queries.
 
 **Part of the [Kapildhinwa2010-dev Toolkit](https://github.com/kapildhinwa2010-dev/Kapildhinwa2010-dev).**
 
-![CI](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/ci.yml/badge.svg)
-![CodeQL](https://github.com/kapildhinwa2010-dev/FactBase/actions/workflows/codeql.yml/badge.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+## What it does
 
-## ✨ Features
+FactBase is the STORAGE layer of the fact-tool family. It holds
+triples with indexed direct and reverse queries, merges other stores,
+and exports/imports facts as JSON. Rules live in RuleEngine; alias
+derivation in AliasDeriver; path analysis in ChainReasoner.
 
-- (subject, predicate, object) fact triples with dedup
-- Transitive `same_as` alias closure
-- Multi-hop chain walks and interference ranking
-
-## 📦 Install
+## Install
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 🚀 Quick start
+## Quick start
 
 ```python
 from factbase import KnowledgeNet
 
-net = KnowledgeNet()
-net.add('a', 'next', 'b')
-net.add('b', 'next', 'c')
-print(net.chain('a', 'next'))  # ['b', 'c']
+a = KnowledgeNet()
+a.add("alice", "knows", "bob")
+b = KnowledgeNet()
+b.import_json(a.export_json())
+print(b.subjects())   # ["alice"]
 ```
 
-## 🧪 Tests
+## API
 
-```bash
-pytest tests/ -v
-```
+- add / query / facts / chain / interference - shared triple store
+- merge(other) - add every fact from another store
+- export_json() / import_json(payload) - persistence round-trip
+- subjects() / predicates() - distinct index listings
 
-## 📄 License
+## Honest results and limitations
 
-MIT — see [LICENSE](LICENSE).
+- import_json validates entries and raises ValueError on malformed
+  triples; it does not repair or skip them.
+- Storage is in-memory only - export_json() is the only durability
+  mechanism; nothing is written to disk automatically.
+- No versioning, timestamps, or conflict resolution on merge.
+
+## License
+
+MIT - see [LICENSE](LICENSE).
